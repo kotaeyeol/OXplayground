@@ -57,6 +57,47 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
 #qbar.ansO #qbNum{background:var(--o);color:#fff}#qbar.ansX #qbNum{background:var(--x);color:#fff}
 #qbar.win{background:#fef9c3}
 #exitBtn{background:#7f1d1d}
+/* ===== 휴대폰 전용 화면 (body.phone) ===== */
+#menuBtn,#emoToggle,#joy,.oxGo{display:none}
+body.phone #hud{gap:5px}
+body.phone #hud .chip{font-size:12.5px;padding:6px 11px}
+body.phone #hud > :not(#hudInfo):not(#menuBtn){display:none}
+body.phone #menuBtn{display:inline-block;background:rgba(15,23,42,.85);outline:none;-webkit-tap-highlight-color:transparent}
+body.phone.menuOpen #hud{z-index:30;flex-wrap:wrap;max-width:calc(100vw - 20px);background:rgba(15,23,42,.6);padding:8px;border-radius:16px;backdrop-filter:blur(4px)}
+body.phone.menuOpen #joy,body.phone.menuOpen .oxGo{visibility:hidden}
+body.phone.menuOpen #hud > *{display:inline-block!important}
+body.phone.menuOpen #hud > #modeBadge[hidden]{display:none!important}
+#uiModeBtn{background:#334155}
+/* 동작 버튼 : 😊 하나로 접기 */
+body.phone #emoteBar{display:none}
+body.phone.emoOpen #emoteBar:not([hidden]){display:grid;grid-template-columns:repeat(4,48px);gap:6px;left:auto!important;right:12px;bottom:80px;transform:none;width:auto;background:rgba(15,23,42,.5);padding:8px;border-radius:16px;backdrop-filter:blur(4px)}
+body.phone.emoOpen #emoteBar button{width:48px;height:48px;border-width:2px;border-radius:12px;box-shadow:0 3px 0 var(--ink)}
+body.phone.emoOpen #emoteBar button small{display:none}
+body.phone #emoToggle{display:grid;place-items:center;position:absolute;right:12px;bottom:14px;z-index:7;width:58px;height:58px;border-radius:50%;border:3px solid var(--ink);background:#fff;font-size:28px;box-shadow:0 4px 0 var(--ink)}
+body.phone.emoOpen #emoToggle{background:var(--y)}
+/* 가상 조이스틱 */
+body.phone #joy{display:block;position:absolute;left:16px;bottom:16px;width:116px;height:116px;border-radius:50%;z-index:7;background:rgba(255,255,255,.22);border:3px solid rgba(255,255,255,.75);touch-action:none;backdrop-filter:blur(2px)}
+#joy .knob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.95);border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);pointer-events:none}
+/* O/X 자동 이동 버튼 */
+body.phone .oxGo.show{display:flex}
+.oxGo{position:absolute;top:50%;transform:translateY(-50%);z-index:7;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:78px;height:78px;border-radius:22px;border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);font-weight:900;font-size:12px;color:#fff}
+.oxGo b{font-size:30px;line-height:1}
+.oxGo:active{transform:translateY(calc(-50% + 3px));box-shadow:0 2px 0 var(--ink)}
+#goO{left:12px;background:#3b82f6}#goX{right:12px;background:#ef4444}
+.oxGo.picked{outline:4px solid var(--y);outline-offset:2px}
+/* 휴대폰에서 배너·알림 작게 */
+body.phone #qbar{bottom:14px;max-width:calc(100vw - 300px);padding:6px 9px;gap:7px;box-shadow:0 3px 0 var(--ink);border-width:2px}
+body.phone #qbText{font-size:14px;line-height:1.3}
+body.phone #qbNum{font-size:12px;padding:3px 7px}
+body.phone #qbTime{font-size:18px;min-width:36px;padding:2px 6px}
+body.phone #toast{top:48px;font-size:14px;padding:8px 13px;border-width:2px;box-shadow:0 3px 0 var(--ink)}
+body.phone #hint{bottom:auto;top:96px;font-size:12px;white-space:normal;max-width:90vw;text-align:center}
+body.phone #wm{display:none}
+@media (orientation:portrait){
+  body.phone #qbar{bottom:150px;max-width:94vw}
+  body.phone .oxGo{top:auto;bottom:150px;transform:none;width:70px;height:70px}
+  body.phone #qbar:not([hidden]) ~ .oxGo{bottom:224px}
+}
 /* 참석자 명단 (왼쪽) */
 #roster{position:absolute;left:10px;top:58px;bottom:34px;width:196px;z-index:5;display:flex;flex-direction:column;gap:8px}
 .rbox{display:flex;flex-direction:column;min-height:0;overflow:hidden;border-radius:14px;border:2px solid;backdrop-filter:blur(4px)}
@@ -270,6 +311,8 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
     <button class="chip" id="muteBtn" title="모든 소리 켜기/끄기">🔊</button>
     <button class="chip" id="exitBtn" title="메인화면으로 나가기">🚪 나가기</button>
     <button class="chip" id="rosterBtn" title="참석자 명단 보이기/숨기기">👥 명단</button>
+    <button class="chip" id="uiModeBtn" title="화면 모드 바꾸기">📱 화면: 자동</button>
+    <button class="chip" id="menuBtn" title="메뉴">☰</button>
   </div>
   <div id="roster" hidden>
     <div class="rbox alive"><h4>🙋 생존 <b id="rAliveN">0</b></h4><div class="rlist" id="rAlive"></div></div>
@@ -282,6 +325,10 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
   <div id="byeOverlay" hidden><div class="cm-card"><div class="cm-ico">👋</div><h3>선생님이 방을 닫았어요</h3><p>오늘도 수고했어요! 잠시 후 첫 화면으로 돌아가요.</p></div></div>
   <div id="wm">공학하는 기술쌤</div>
   <div id="emoteBar" hidden></div>
+  <button id="emoToggle" title="동작">😊</button>
+  <div id="joy"><div class="knob"></div></div>
+  <button class="oxGo" id="goO"><b>⭕</b>O로 가기</button>
+  <button class="oxGo" id="goX"><b>❌</b>X로 가기</button>
 
   <!-- 교사 하단 진행 바 -->
   <div id="tbar" hidden>
@@ -851,6 +898,7 @@ function inputVec(){
   const k = S.keys; let x = 0, y = 0;
   if (k.arrowleft || k.a) x -= 1; if (k.arrowright || k.d) x += 1;
   if (k.arrowup || k.w) y -= 1; if (k.arrowdown || k.s) y += 1;
+  if (S.joyVec){ x += S.joyVec.x; y += S.joyVec.y; }      // 휴대폰 조이스틱
   const l = Math.hypot(x, y); if (l > 1){ x /= l; y /= l; }
   return {x, y};
 }
@@ -929,7 +977,7 @@ const EMOTE_SFX = {
 const BTN_SFX = {
   goS: 'enter', goT: 'enter', cQ: 'send', cN: 'notice', bNew: 'power', bEnd: 'trumpet', bBots: 'robot', bBotsClear: 'robotOff',
   tpOpen: 'open', tpClose: 'close', camBtn: 'shutter', copyLink: 'copy', mAdd: 'add', mBulkAdd: 'add',
-  bReveal: 'stop', tbStop: 'stop', exitBtn: 'close', bClose: 'stop', rosterBtn: 'toggle', rO: 'drum', rX: 'drum', muteBtn: 'toggle', bgmBtn: 'toggle'
+  bReveal: 'stop', tbStop: 'stop', exitBtn: 'close', bClose: 'stop', rosterBtn: 'toggle', menuBtn: 'open', emoToggle: 'open', uiModeBtn: 'toggle', goO: 'send', goX: 'send', rO: 'drum', rX: 'drum', muteBtn: 'toggle', bgmBtn: 'toggle'
 };
 const UI_SFX = {
   enter:  t => [60, 64, 67, 72, 76].forEach((m, i) => tone(SFX, mtof(m + 12), t + i*.06, .2, 'triangle', .1)),
@@ -1489,7 +1537,7 @@ function setCamMode(m, reset=true){
   if (reset) resetCam();
 }
 function resetCam(){
-  if (S.camMode === 'follow'){ camS.yaw = 0; camS.pitch = .42; camS.dist = 15; }
+  if (S.camMode === 'follow'){ const pp = document.body.classList.contains('phone') && innerHeight > innerWidth; camS.yaw = 0; camS.pitch = pp ? .55 : .42; camS.dist = pp ? 18 : 15; }
   else if (S.camMode === 'overview'){ camS.yaw = 0; camS.pitch = .72; camS.dist = 50; }
 }
 const camLimits = () => [4, 120];
@@ -1718,7 +1766,8 @@ function resize(){
   const w = innerWidth - panelW, h = innerHeight;
   cv.style.width = w + 'px'; cv.style.height = h + 'px';
   renderer.setSize(w, h, false);
-  camera.aspect = w/h; camera.updateProjectionMatrix();
+  camera.aspect = w/h; camera.fov = (document.body.classList.contains('phone') && h > w) ? 64 : 50; camera.updateProjectionMatrix();
+  if (typeof applyUiMode === 'function') applyUiMode();
   for (const id of ['hint', 'toast', 'qbar']) $(id).style.left = (w/2) + 'px';
   $('emoteBar').style.left = S.role === 'teacher' ? '' : (w/2) + 'px';
 }
@@ -1828,7 +1877,7 @@ setInterval(() => {
   if (!S.net) return;
   // 데모 모드: 오래 응답 없는 플레이어 정리
   if (DEMO) { const n = Date.now(); for (const [id, p] of S.players) if (!S.owned.has(id) && id !== S.id && n - (p.seen||n) > 7000) S.players.delete(id); }
-  $('hudInfo').textContent = `🏫 방 ${S.room} · 👥 ${S.players.size}명 · 🙋 생존 ${aliveCount()}명`;
+  $('hudInfo').textContent = document.body.classList.contains('phone') ? `🏫 ${S.room} · 👥 ${S.players.size} · 🙋 ${aliveCount()}` : `🏫 방 ${S.room} · 👥 ${S.players.size}명 · 🙋 생존 ${aliveCount()}명`;
   renderRoster();
   if (S.role === 'teacher'){ teacherTick(); updatePanel(); }
 }, 250);
@@ -2043,6 +2092,73 @@ $('goT').onclick = async () => {
   }
 };
 
+/* ---------- 휴대폰 화면 모드 ---------- */
+var uiPref = 'auto'; try { uiPref = localStorage.getItem('oxplaza_ui') || 'auto'; } catch {}
+function isPhone(){
+  if (uiPref === 'phone') return true;
+  if (uiPref === 'pc') return false;
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  return coarse && Math.min(innerWidth, innerHeight) < 600;      // 터치 + 짧은 쪽 600px 미만 → 휴대폰
+}
+var lastPhone = null;
+function applyUiMode(){
+  const ph = isPhone();
+  $('uiModeBtn').textContent = {auto:`📱 화면: 자동(${ph ? '휴대폰' : 'PC'})`, phone:'📱 화면: 휴대폰', pc:'💻 화면: PC'}[uiPref || 'auto'];
+  if (ph === lastPhone) return; lastPhone = ph;
+  document.body.classList.toggle('phone', ph);
+  if (!ph){ document.body.classList.remove('menuOpen', 'emoOpen'); S.joyVec = null; }
+  if (S.role === 'student') $('hint').textContent = ph
+    ? '👆 바닥을 톡: 이동 · 🕹 왼쪽 아래: 조이스틱 · ✌️ 두 손가락: 시점 · 😊 동작'
+    : '바닥 터치·클릭 또는 방향키로 이동 · 드래그: 회전 · 우클릭 드래그/두 손가락: 시점 이동 · 휠: 확대 · 1~8 동작';
+  if (S.net) setTimeout(resize, 0);
+}
+$('uiModeBtn').onclick = () => {
+  uiPref = {auto:'phone', phone:'pc', pc:'auto'}[uiPref];
+  try { localStorage.setItem('oxplaza_ui', uiPref); } catch {}
+  lastPhone = null; applyUiMode(); toast($('uiModeBtn').textContent);
+};
+$('menuBtn').onclick = () => { document.body.classList.toggle('menuOpen'); $('menuBtn').textContent = document.body.classList.contains('menuOpen') ? '✕' : '☰'; };
+$('hud').addEventListener('click', e => {   // 메뉴 안 버튼을 누르면 메뉴 접기
+  const b = e.target.closest('button'); if (!b || b.id === 'menuBtn' || b.id === 'uiModeBtn') return;
+  if (document.body.classList.contains('phone')){ document.body.classList.remove('menuOpen'); $('menuBtn').textContent = '☰'; }
+});
+$('emoToggle').onclick = () => document.body.classList.toggle('emoOpen');
+$('emoteBar').addEventListener('click', () => { if (document.body.classList.contains('phone')) setTimeout(() => document.body.classList.remove('emoOpen'), 150); });
+
+// 조이스틱
+(function joystick(){
+  const el = $('joy'), knob = el.querySelector('.knob'); let id = null;
+  const set = e => {
+    const r = el.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2, R = r.width/2 - 8;
+    let dx = e.clientX - cx, dy = e.clientY - cy; const d = Math.hypot(dx, dy);
+    if (d > R){ dx = dx/d*R; dy = dy/d*R; }
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+    S.joyVec = d < 8 ? null : {x: dx/R, y: dy/R};
+    if (S.joyVec) S.moveTarget = null;
+  };
+  el.addEventListener('pointerdown', e => { unlockAudio(); id = e.pointerId; el.setPointerCapture(id); set(e); });
+  el.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); });
+  const end = e => { if (e.pointerId !== id) return; id = null; S.joyVec = null; knob.style.transform = ''; };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+})();
+
+// O/X 자동 이동 버튼
+function goZone(type){
+  if (!S.me || S.role !== 'student') return;
+  const z = type === 'O' ? OZ : XZ, m = 40;
+  S.moveTarget = {x: clamp(S.me.x, z.x + m, z.x + z.w - m) + rand(-20, 20), y: clamp(S.me.y, z.y + m, z.y + z.h - m) + rand(-20, 20)};
+  S.moveTarget.x = clamp(S.moveTarget.x, z.x + m, z.x + z.w - m); S.moveTarget.y = clamp(S.moveTarget.y, z.y + m, z.y + z.h - m);
+  marker.position.set(X3(S.moveTarget.x), .06, Z3(S.moveTarget.y)); marker.visible = true; marker.t0 = performance.now();
+}
+$('goO').onclick = () => goZone('O');
+$('goX').onclick = () => goZone('X');
+function updateOxGo(){
+  const g = S.game, show = S.role === 'student' && S.me && !g.out[S.id] && g.phase === 'question' && NOW() < g.endAt;
+  const here = show ? zoneOf(S.me.x, S.me.y) : null;
+  for (const [id, t] of [['goO','O'], ['goX','X']]){ $(id).classList.toggle('show', !!show); $(id).classList.toggle('picked', here === t); }
+}
+setInterval(updateOxGo, 200);
+
 /* ---------- 참석자 명단 ---------- */
 let rosterKey = '';
 function renderRoster(){
@@ -2130,7 +2246,8 @@ function enterGame(){
     $('emoteBar').hidden = false;
     $('emoteBar').innerHTML = EMOTES.map((e, i) => `<button data-k="${e.k}" title="${i+1}"><span>${e.i}</span><small>${e.l}</small></button>`).join('');
     $('emoteBar').onclick = ev => { const b = ev.target.closest('button'); if (b) doEmote(b.dataset.k); };
-    $('hint').hidden = false; setTimeout(() => $('hint').style.opacity = 0, 10000);
+    lastPhone = null; applyUiMode();
+    $('hint').hidden = false; setTimeout(() => $('hint').style.opacity = 0, document.body.classList.contains('phone') ? 6000 : 10000);
     toast(innerHeight > innerWidth ? '📱 화면을 가로로 돌리면 더 크게 보여요!' : `👋 ${S.me.n}님, 운동장에 들어왔어요!`);
   } else {
     // 선생님 캐릭터 : 방향키·바닥 클릭으로 이동, 숫자 1~8 또는 오른쪽 아래 버튼으로 동작
