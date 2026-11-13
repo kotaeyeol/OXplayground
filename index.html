@@ -48,7 +48,7 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
 #hud{position:absolute;left:10px;top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;z-index:5;pointer-events:none}
 #hud button{pointer-events:auto;border:0}
 #modeBadge{background:#7c3aed}
-#qbar{position:absolute;left:50%;top:58px;transform:translateX(-50%);width:max-content;max-width:min(760px,94vw);display:flex;align-items:center;gap:10px;z-index:6;pointer-events:none;
+#qbar{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);width:max-content;max-width:min(760px,94vw);display:flex;align-items:center;gap:10px;z-index:6;pointer-events:none;
   background:#fff;border:3px solid var(--ink);border-radius:16px;padding:10px 12px;box-shadow:0 5px 0 var(--ink)}
 #qbNum{flex:none;background:var(--y);border:2px solid var(--ink);border-radius:10px;padding:4px 10px;font-weight:900;font-size:16px}
 #qbText{font-weight:800;font-size:18px;line-height:1.35}
@@ -71,7 +71,7 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
 .ans.Q{background:#94a3b8}
 #cv{cursor:grab}#cv:active{cursor:grabbing}
 #hint{position:absolute;left:50%;bottom:170px;transform:translateX(-50%);font-size:13px;white-space:nowrap;transition:opacity 1s;z-index:4;pointer-events:none}
-#toast{position:absolute;left:50%;top:140px;transform:translate(-50%,-10px);opacity:0;transition:.25s;z-index:40;pointer-events:none;
+#toast{position:absolute;left:50%;top:62px;transform:translate(-50%,-10px);opacity:0;transition:.25s;z-index:40;pointer-events:none;
   background:#fff;border:3px solid var(--ink);border-radius:16px;padding:12px 20px;font-size:18px;font-weight:900;box-shadow:0 6px 0 var(--ink);text-align:center;max-width:90vw}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.good{background:#bbf7d0}#toast.bad{background:#fecaca}
@@ -203,8 +203,8 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
   #emoteBar button{width:42px;height:48px;border-width:2px;border-radius:10px;box-shadow:0 3px 0 var(--ink)}
   #emoteBar button span{font-size:20px}
   #emoteBar button small{display:none}
-  #toast{font-size:15px;padding:9px 14px;top:120px}
-  #qbar{top:52px;padding:7px 9px;gap:7px}#qbText{font-size:15px}#qbNum{font-size:13px}#qbTime{font-size:18px;min-width:38px}
+  #toast{font-size:15px;padding:9px 14px;top:56px}
+  #qbar{bottom:70px;padding:7px 9px;gap:7px}#qbText{font-size:15px}#qbNum{font-size:13px}#qbTime{font-size:18px;min-width:38px}
   #hud .chip{font-size:12px;padding:6px 10px}
 }
 </style>
