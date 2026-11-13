@@ -48,7 +48,7 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
 #hud{position:absolute;left:10px;top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;z-index:5;pointer-events:none}
 #hud button{pointer-events:auto;border:0}
 #modeBadge{background:#7c3aed}
-#qbar{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);width:max-content;max-width:min(760px,94vw);display:flex;align-items:center;gap:10px;z-index:6;pointer-events:none;
+#qbar{position:absolute;left:50%;top:58px;transform:translateX(-50%);width:max-content;max-width:min(760px,94vw);display:flex;align-items:center;gap:10px;z-index:6;pointer-events:none;
   background:#fff;border:3px solid var(--ink);border-radius:16px;padding:10px 12px;box-shadow:0 5px 0 var(--ink)}
 #qbNum{flex:none;background:var(--y);border:2px solid var(--ink);border-radius:10px;padding:4px 10px;font-weight:900;font-size:16px}
 #qbText{font-weight:800;font-size:18px;line-height:1.35}
@@ -56,13 +56,22 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
 #qbar.hot #qbTime{background:var(--x)}
 #qbar.ansO #qbNum{background:var(--o);color:#fff}#qbar.ansX #qbNum{background:var(--x);color:#fff}
 #qbar.win{background:#fef9c3}
+#exitBtn{background:#7f1d1d}
+#cmodal,#byeOverlay{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);padding:16px}
+.cm-card{width:min(420px,100%);background:#fff;border:3px solid var(--ink);border-radius:22px;box-shadow:0 8px 0 var(--ink);padding:24px 22px;text-align:center}
+.cm-ico{font-size:44px;line-height:1}
+.cm-card h3{font-size:21px;font-weight:900;margin:10px 0 6px}
+.cm-card p{font-size:14.5px;color:#475569;line-height:1.55;font-weight:600}
+.cm-btns{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.cm-btns button{border:3px solid var(--ink);border-radius:14px;padding:12px;font-size:16px;font-weight:900;background:#fff;box-shadow:0 4px 0 var(--ink)}
+.cm-btns button.danger{background:#ef4444;color:#fff}.cm-btns button.main{background:var(--y)}.cm-btns button.ghost{border-color:#cbd5e1;box-shadow:none;color:#475569}
 #qbar.locked #qbTime{background:#475569}
 .btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:0 3px 0 var(--ink)}
 @keyframes pulse{50%{background:#fee2e2}}
 .ans.Q{background:#94a3b8}
 #cv{cursor:grab}#cv:active{cursor:grabbing}
 #hint{position:absolute;left:50%;bottom:170px;transform:translateX(-50%);font-size:13px;white-space:nowrap;transition:opacity 1s;z-index:4;pointer-events:none}
-#toast{position:absolute;left:50%;top:62px;transform:translate(-50%,-10px);opacity:0;transition:.25s;z-index:40;pointer-events:none;
+#toast{position:absolute;left:50%;top:140px;transform:translate(-50%,-10px);opacity:0;transition:.25s;z-index:40;pointer-events:none;
   background:#fff;border:3px solid var(--ink);border-radius:16px;padding:12px 20px;font-size:18px;font-weight:900;box-shadow:0 6px 0 var(--ink);text-align:center;max-width:90vw}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.good{background:#bbf7d0}#toast.bad{background:#fecaca}
@@ -161,7 +170,7 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
 .statRow div{background:#fff;border:2px solid #e2e8f0;border-radius:14px;padding:10px;text-align:center}
 .statRow b{display:block;font-size:28px;font-weight:900;line-height:1.1}
 .statRow span{font-size:12px;font-weight:800;color:#64748b}
-.actRow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.actRow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .actRow .btn{display:flex;flex-direction:column;gap:2px;padding:12px}
 .actRow .btn b{font-size:17px}.actRow .btn small{font-size:12px;font-weight:600;color:#475569}
 .log{font-size:13px;line-height:1.6;color:#334155;overflow:auto;flex:1;min-height:0}
@@ -194,8 +203,8 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
   #emoteBar button{width:42px;height:48px;border-width:2px;border-radius:10px;box-shadow:0 3px 0 var(--ink)}
   #emoteBar button span{font-size:20px}
   #emoteBar button small{display:none}
-  #toast{font-size:15px;padding:9px 14px;top:56px}
-  #qbar{bottom:70px;padding:7px 9px;gap:7px}#qbText{font-size:15px}#qbNum{font-size:13px}#qbTime{font-size:18px;min-width:38px}
+  #toast{font-size:15px;padding:9px 14px;top:120px}
+  #qbar{top:52px;padding:7px 9px;gap:7px}#qbText{font-size:15px}#qbNum{font-size:13px}#qbTime{font-size:18px;min-width:38px}
   #hud .chip{font-size:12px;padding:6px 10px}
 }
 </style>
@@ -241,10 +250,13 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
     <button class="chip" id="camBtn" title="시점 초기화">🎥</button>
     <button class="chip" id="bgmBtn" title="배경음 켜기/끄기">🎵 ON</button>
     <button class="chip" id="muteBtn" title="모든 소리 켜기/끄기">🔊</button>
+    <button class="chip" id="exitBtn" title="메인화면으로 나가기">🚪 나가기</button>
   </div>
   <div id="qbar" hidden><span id="qbNum">Q1</span><span id="qbText"></span><span id="qbTime">15</span></div>
   <div class="chip" id="hint" hidden>바닥 터치·클릭 또는 방향키로 이동 · 드래그: 회전 · 우클릭 드래그/두 손가락: 시점 이동 · 휠: 확대 · 1~8 동작</div>
   <div id="toast"></div>
+  <div id="cmodal" hidden><div class="cm-card"><div class="cm-ico" id="cmIco">🚪</div><h3 id="cmTitle"></h3><p id="cmMsg"></p><div class="cm-btns" id="cmBtns"></div></div></div>
+  <div id="byeOverlay" hidden><div class="cm-card"><div class="cm-ico">👋</div><h3>선생님이 방을 닫았어요</h3><p>오늘도 수고했어요! 잠시 후 첫 화면으로 돌아가요.</p></div></div>
   <div id="wm">공학하는 기술쌤</div>
   <div id="emoteBar" hidden></div>
 
@@ -350,6 +362,7 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
               <button class="btn g" id="bNew"><b>🔄 새 게임</b><small>모두 부활하고 1번부터</small></button>
               <button class="btn y" id="bReveal"><b>⏹ 시간 끝내기</b><small>남은 시간 건너뛰기</small></button>
               <button class="btn" id="bEnd"><b>🏆 게임 종료</b><small>남은 학생 모두 우승</small></button>
+              <button class="btn x" id="bClose"><b>🔒 방 닫기</b><small>모든 학생을 첫 화면으로</small></button>
             </div>
             <div class="playGrid">
               <div class="card2">
@@ -506,6 +519,7 @@ class DemoNet {
   patch(id, p){ const d = {...(this.owned.get(id)||{}), ...p}; this.owned.set(id, d); this.bc.postMessage({t:'p', id, d}); }
   del(id){ this.owned.delete(id); this.bc.postMessage({t:'rm', id}); }
   putGame(g){ this.game = g; this.bc.postMessage({t:'g', g}); }
+  clearRoom(){}
   now(){ return Date.now(); }
 }
 
@@ -530,6 +544,7 @@ async function makeFirebaseNet(room){
     patch(id, p){ D.update(D.ref(db, base + '/players/' + id), p); },
     del(id){ D.remove(D.ref(db, base + '/players/' + id)); },
     putGame(g){ D.set(D.ref(db, base + '/game'), g); },
+    clearRoom(){ return D.remove(D.ref(db, base)); },
     now(){ return Date.now() + off; }
   };
 }
@@ -543,7 +558,7 @@ function normGame(g){
     phase: g.phase || 'lobby', round: g.round || 0, q: g.q || '', dur: g.dur || 15, endAt: g.endAt || 0,
     answer: g.answer || null, exp: g.exp || '', out: g.out || {}, lastOut: g.lastOut || {}, late: g.late || {},
     allRevive: !!g.allRevive, survivors: g.survivors ?? null, outCount: g.outCount || 0,
-    winners: g.winners || null, winnerIds: g.winnerIds || {}, autoEndAt: g.autoEndAt || 0, notice: g.notice || null,
+    winners: g.winners || null, winnerIds: g.winnerIds || {}, autoEndAt: g.autoEndAt || 0, notice: g.notice || null, closed: g.closed || 0,
     picks: g.picks || {}, pickO: g.pickO || 0, pickX: g.pickX || 0, lockOut: g.lockOut || 0
   };
 }
@@ -558,6 +573,12 @@ function setGame(g){              // 교사만 호출
 function applyGame(raw){
   const g = normGame(raw);
   const prev = S.game; S.game = g;
+  // 선생님이 방을 닫으면 학생은 모두 첫 화면으로
+  if (S.role === 'student' && g.closed && g.closed > S.joinT && !S.leaving){
+    S.leaving = true; $('byeOverlay').hidden = false; sfx('win');
+    setTimeout(() => leaveRoom(false), 3000);
+    return;
+  }
   const newQ = g.phase === 'question' && (prev.phase !== 'question' || prev.round !== g.round);
 
   if (S.role === 'student' && S.me){
@@ -885,7 +906,7 @@ const EMOTE_SFX = {
 const BTN_SFX = {
   goS: 'enter', goT: 'enter', cQ: 'send', cN: 'notice', bNew: 'power', bEnd: 'trumpet', bBots: 'robot', bBotsClear: 'robotOff',
   tpOpen: 'open', tpClose: 'close', camBtn: 'shutter', copyLink: 'copy', mAdd: 'add', mBulkAdd: 'add',
-  bReveal: 'stop', tbStop: 'stop', rO: 'drum', rX: 'drum', muteBtn: 'toggle', bgmBtn: 'toggle'
+  bReveal: 'stop', tbStop: 'stop', exitBtn: 'close', bClose: 'stop', rO: 'drum', rX: 'drum', muteBtn: 'toggle', bgmBtn: 'toggle'
 };
 const UI_SFX = {
   enter:  t => [60, 64, 67, 72, 76].forEach((m, i) => tone(SFX, mtof(m + 12), t + i*.06, .2, 'triangle', .1)),
@@ -1984,7 +2005,7 @@ $('goT').onclick = async () => {
     await connect(room, true);
     S.readyAt = performance.now() + 3000;
     if (DEMO) setGame(normGame());           // 데모: 새 방 시작
-    else setTimeout(() => { if (!S.gotGame) setGame(normGame()); S.gotGame = true; }, 1500);
+    else setTimeout(() => { if (!S.gotGame || S.game.closed) setGame(normGame()); S.gotGame = true; }, 1500);
     loadMyBank(); renderBank();
     $('tRoom').textContent = room;
     $('tQR').src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=6&data=' + encodeURIComponent(studentLink());
@@ -1997,6 +2018,57 @@ $('goT').onclick = async () => {
     $('goT').disabled = false; $('goT').textContent = '교사로 입장 👩‍🏫';
   }
 };
+
+/* ---------- 나가기 · 방 닫기 ---------- */
+function askModal(ico, title, msg, btns){
+  $('cmIco').textContent = ico; $('cmTitle').textContent = title; $('cmMsg').textContent = msg;
+  $('cmBtns').innerHTML = '';
+  btns.forEach(b => {
+    const el = document.createElement('button'); el.textContent = b.label; el.className = b.cls || '';
+    el.onclick = () => { $('cmodal').hidden = true; b.fn && b.fn(); };
+    $('cmBtns').appendChild(el);
+  });
+  $('cmodal').hidden = false;
+}
+$('cmodal').addEventListener('pointerdown', e => { if (e.target === $('cmodal')) $('cmodal').hidden = true; });
+
+function leaveRoom(){
+  S.leaving = true;
+  try {
+    if (S.role === 'student') S.net.del(S.id);
+    if (S.role === 'teacher'){ clearBots(); S.net.del('teacher'); }
+  } catch {}
+  const base = location.href.split('?')[0].split('#')[0];
+  const back = S.role === 'student' && !S.game.closed ? base + '?room=' + S.room : base;
+  setTimeout(() => { location.href = back; }, 400);
+}
+function closeRoom(){
+  setGame({...S.game, closed: S.net.now()});
+  addLog('🔒 방을 닫았어요');
+  setPanel(false);
+  $('byeOverlay').querySelector('h3').textContent = '방을 닫았어요';
+  $('byeOverlay').querySelector('p').textContent = '모든 학생이 첫 화면으로 돌아가요. 수고하셨어요!';
+  $('byeOverlay').hidden = false; sfx('win');
+  setTimeout(async () => { try { await S.net.clearRoom(); } catch {} leaveRoom(); }, 3500);
+}
+function confirmClose(){
+  askModal('🔒', '정말 방을 닫을까요?', '모든 학생이 첫 화면으로 나가고, 이 방의 기록은 지워져요. 되돌릴 수 없어요.', [
+    {label:'네, 방 닫기', cls:'danger', fn: closeRoom},
+    {label:'취소', cls:'ghost'}
+  ]);
+}
+$('exitBtn').onclick = () => {
+  if (S.role === 'teacher') askModal('🚪', '방 나가기', '퀴즈가 끝났나요? 방을 닫으면 모든 학생이 첫 화면으로 나가요.', [
+    {label:'🔒 방 닫고 모두 내보내기', cls:'danger', fn: confirmClose},
+    {label:'나만 나가기 (방은 그대로)', cls:'main', fn: leaveRoom},
+    {label:'취소', cls:'ghost'}
+  ]);
+  else askModal('🚪', '첫 화면으로 나갈까요?', '나가면 지금 게임에서 빠져요. 같은 방 코드로 다시 들어올 수 있어요.', [
+    {label:'나가기', cls:'danger', fn: leaveRoom},
+    {label:'계속하기', cls:'ghost'}
+  ]);
+};
+$('bClose').onclick = confirmClose;
 
 function enterGame(){
   $('join').hidden = true; $('hud').hidden = false;
