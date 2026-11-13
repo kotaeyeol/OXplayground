@@ -57,6 +57,24 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
 #qbar.ansO #qbNum{background:var(--o);color:#fff}#qbar.ansX #qbNum{background:var(--x);color:#fff}
 #qbar.win{background:#fef9c3}
 #exitBtn{background:#7f1d1d}
+/* 참석자 명단 (왼쪽) */
+#roster{position:absolute;left:10px;top:58px;bottom:34px;width:196px;z-index:5;display:flex;flex-direction:column;gap:8px}
+.rbox{display:flex;flex-direction:column;min-height:0;overflow:hidden;border-radius:14px;border:2px solid;backdrop-filter:blur(4px)}
+.rbox.alive{flex:3;background:rgba(239,246,255,.9);border-color:#bfdbfe}
+.rbox.out{flex:2;background:rgba(254,242,242,.9);border-color:#fecaca}
+.rbox h4{display:flex;justify-content:space-between;align-items:center;padding:8px 10px 6px;font-size:13.5px;font-weight:900}
+.rbox.alive h4{color:#1d4ed8}.rbox.out h4{color:#b91c1c}
+.rbox h4 b{font-size:12px;border-radius:999px;padding:1px 9px;background:#fff}
+.rlist{flex:1;min-height:0;overflow:auto;padding:0 6px 6px;display:flex;flex-direction:column;gap:3px}
+.rlist div{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.8);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:800;color:#1e293b;flex:none}
+.rbox.out .rlist div{color:#64748b}
+.rlist i{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px rgba(15,23,42,.25)}
+.rlist div.me{box-shadow:inset 0 0 0 2px #facc15}
+.rlist small{margin-left:auto;font-size:11px;font-weight:900;padding:0 6px;border-radius:6px;color:#fff;line-height:17px}
+.rlist small.pO{background:#3b82f6}.rlist small.pX{background:#ef4444}
+.rlist .none{background:none;color:#94a3b8;font-weight:600;font-size:12px;justify-content:center}
+#rosterBtn.off{opacity:.6}
+@media (max-width:600px){#roster{width:150px;top:52px}.rlist div{font-size:12px;padding:3px 6px}}
 #cmodal,#byeOverlay{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);padding:16px}
 .cm-card{width:min(420px,100%);background:#fff;border:3px solid var(--ink);border-radius:22px;box-shadow:0 8px 0 var(--ink);padding:24px 22px;text-align:center}
 .cm-ico{font-size:44px;line-height:1}
@@ -251,6 +269,11 @@ label.f{display:block;font-size:13px;font-weight:800;margin:12px 0 6px;color:#33
     <button class="chip" id="bgmBtn" title="배경음 켜기/끄기">🎵 ON</button>
     <button class="chip" id="muteBtn" title="모든 소리 켜기/끄기">🔊</button>
     <button class="chip" id="exitBtn" title="메인화면으로 나가기">🚪 나가기</button>
+    <button class="chip" id="rosterBtn" title="참석자 명단 보이기/숨기기">👥 명단</button>
+  </div>
+  <div id="roster" hidden>
+    <div class="rbox alive"><h4>🙋 생존 <b id="rAliveN">0</b></h4><div class="rlist" id="rAlive"></div></div>
+    <div class="rbox out"><h4>😵 탈락 <b id="rOutN">0</b></h4><div class="rlist" id="rOut"></div></div>
   </div>
   <div id="qbar" hidden><span id="qbNum">Q1</span><span id="qbText"></span><span id="qbTime">15</span></div>
   <div class="chip" id="hint" hidden>바닥 터치·클릭 또는 방향키로 이동 · 드래그: 회전 · 우클릭 드래그/두 손가락: 시점 이동 · 휠: 확대 · 1~8 동작</div>
@@ -906,7 +929,7 @@ const EMOTE_SFX = {
 const BTN_SFX = {
   goS: 'enter', goT: 'enter', cQ: 'send', cN: 'notice', bNew: 'power', bEnd: 'trumpet', bBots: 'robot', bBotsClear: 'robotOff',
   tpOpen: 'open', tpClose: 'close', camBtn: 'shutter', copyLink: 'copy', mAdd: 'add', mBulkAdd: 'add',
-  bReveal: 'stop', tbStop: 'stop', exitBtn: 'close', bClose: 'stop', rO: 'drum', rX: 'drum', muteBtn: 'toggle', bgmBtn: 'toggle'
+  bReveal: 'stop', tbStop: 'stop', exitBtn: 'close', bClose: 'stop', rosterBtn: 'toggle', rO: 'drum', rX: 'drum', muteBtn: 'toggle', bgmBtn: 'toggle'
 };
 const UI_SFX = {
   enter:  t => [60, 64, 67, 72, 76].forEach((m, i) => tone(SFX, mtof(m + 12), t + i*.06, .2, 'triangle', .1)),
@@ -1806,6 +1829,7 @@ setInterval(() => {
   // 데모 모드: 오래 응답 없는 플레이어 정리
   if (DEMO) { const n = Date.now(); for (const [id, p] of S.players) if (!S.owned.has(id) && id !== S.id && n - (p.seen||n) > 7000) S.players.delete(id); }
   $('hudInfo').textContent = `🏫 방 ${S.room} · 👥 ${S.players.size}명 · 🙋 생존 ${aliveCount()}명`;
+  renderRoster();
   if (S.role === 'teacher'){ teacherTick(); updatePanel(); }
 }, 250);
 
@@ -2019,6 +2043,28 @@ $('goT').onclick = async () => {
   }
 };
 
+/* ---------- 참석자 명단 ---------- */
+let rosterKey = '';
+function renderRoster(){
+  if ($('roster').hidden) return;
+  const g = S.game, showPick = g.phase === 'locked';
+  const all = [...S.players.values()].filter(p => p.n).sort((a, b) => a.n.localeCompare(b.n, 'ko'));
+  const alive = all.filter(p => !g.out[p.id]), out = all.filter(p => g.out[p.id]);
+  const key = all.map(p => p.id + (g.out[p.id] ? 'x' : 'o') + (showPick ? g.picks[p.id] || '' : '') + p.n).join('|');
+  if (key === rosterKey) return; rosterKey = key;
+  const row = p => `<div class="${p.id === S.id ? 'me' : ''}"><i style="background:${COLORS[(p.c || 0) % COLORS.length]}"></i>${esc(p.n)}${
+    showPick && g.picks[p.id] ? `<small class="p${g.picks[p.id]}">${g.picks[p.id]}</small>` : ''}</div>`;
+  $('rAliveN').textContent = alive.length; $('rOutN').textContent = out.length;
+  $('rAlive').innerHTML = alive.map(row).join('') || '<div class="none">아직 아무도 없어요</div>';
+  $('rOut').innerHTML = out.map(row).join('') || '<div class="none">탈락자가 없어요</div>';
+}
+function setRoster(on){
+  $('roster').hidden = !on; $('rosterBtn').classList.toggle('off', !on);
+  rosterKey = ''; renderRoster();
+  try { localStorage.setItem('oxplaza_roster_' + S.role, on ? '1' : '0'); } catch {}
+}
+$('rosterBtn').onclick = () => setRoster($('roster').hidden);
+
 /* ---------- 나가기 · 방 닫기 ---------- */
 function askModal(ico, title, msg, btns){
   $('cmIco').textContent = ico; $('cmTitle').textContent = title; $('cmMsg').textContent = msg;
@@ -2074,6 +2120,8 @@ function enterGame(){
   $('join').hidden = true; $('hud').hidden = false;
   $('modeBadge').hidden = !DEMO;
   setCamMode(defaultCamMode());
+  { let rp = null; try { rp = localStorage.getItem('oxplaza_roster_' + S.role); } catch {}
+    setRoster(rp === null ? innerWidth >= 900 : rp === '1'); }
   // 배경음 기본값: 교사 화면은 켜기, 학생 기기는 끄기(교실에서 여러 기기가 동시에 울리지 않도록)
   let pref = null; try { pref = localStorage.getItem('oxplaza_bgm_' + S.role); } catch {}
   setBgm(pref === null ? S.role === 'teacher' : pref === '1');
