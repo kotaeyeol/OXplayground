@@ -2320,9 +2320,9 @@ $('emoteBar').addEventListener('click', () => { if (document.body.classList.cont
 // O/X 자동 이동 버튼
 function goZone(type){
   if (!S.me || S.role !== 'student') return;
-  const z = zoneRect(type), m = 40;
-  S.moveTarget = {x: clamp(S.me.x, z.x + m, z.x + z.w - m) + rand(-20, 20), y: clamp(S.me.y, z.y + m, z.y + z.h - m) + rand(-20, 20)};
-  S.moveTarget.x = clamp(S.moveTarget.x, z.x + m, z.x + z.w - m); S.moveTarget.y = clamp(S.moveTarget.y, z.y + m, z.y + z.h - m);
+  // 칸의 한가운데로 이동 (여러 명이 완전히 겹치지 않게 아주 조금만 흩어짐)
+  const z = zoneRect(type), a = Math.random()*Math.PI*2, r = Math.random()*18;
+  S.moveTarget = {x: z.x + z.w/2 + Math.cos(a)*r, y: z.y + z.h/2 + Math.sin(a)*r};
   marker.position.set(X3(S.moveTarget.x), .06, Z3(S.moveTarget.y)); marker.visible = true; marker.t0 = performance.now();
 }
 for (const k of ['O', 'X', '1', '2', '3', '4']) $('go' + k).onclick = () => goZone(k);
