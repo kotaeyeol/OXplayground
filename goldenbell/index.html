@@ -120,6 +120,8 @@ body.phone #wm{display:none}
 .rlist{flex:1;min-height:0;overflow:auto;padding:0 6px 6px;display:flex;flex-direction:column;gap:3px}
 .rlist div{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.8);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:800;color:#1e293b;flex:none}
 .rbox.out .rlist div{color:#64748b}
+.rlist .sn{flex:none;min-width:20px;font-size:11px;color:#64748b;font-weight:900}
+body.student #joy{display:none!important}
 .rlist i{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px rgba(15,23,42,.25)}
 .rlist div.me{box-shadow:inset 0 0 0 2px #facc15}
 .rlist small{margin-left:auto;font-size:11px;font-weight:900;padding:0 6px;border-radius:6px;color:#fff;line-height:17px;background:#64748b}
@@ -324,7 +326,7 @@ body.phone .ed-note{display:none}
 <div id="join">
   <div class="card">
     <div class="logo"><div class="bell">🔔</div><h1>기술 골든벨</h1></div>
-    <p class="sub">문제가 나오면 <b>화이트보드</b>에 글씨나 그림으로 답을 써요.<br>시간이 끝나면 보드를 번쩍 들고, 선생님이 <b>공개</b>하면 모두의 답이 한꺼번에 뒤집혀요!</p>
+    <p class="sub">들어오면 <b>번호 방석</b> 내 자리에 앉아요. 문제가 나오면 <b>화이트보드</b>에 글씨나 그림으로 답을 써요.<br>시간이 끝나면 보드를 번쩍 들고, 선생님이 <b>공개</b>하면 모두의 답이 한꺼번에 뒤집혀요!</p>
     <div class="tabs"><button id="tabS" class="on">🙋 학생</button><button id="tabT">👩‍🏫 교사</button></div>
 
     <div id="formS">
@@ -510,7 +512,8 @@ body.phone .ed-note{display:none}
             <header><h2>🎮 진행 · 공지</h2><p>게임 방식과 전체 진행을 관리해요. 문제마다 공개·채점은 화면 아래 진행 바에서 해요.</p></header>
             <div class="qtop"><b style="font-size:15px">게임 방식</b>
               <div class="seg" id="gmSeg"><button data-m="elim" class="on">🔔 탈락형</button><button data-m="score">💯 점수형</button></div>
-              <span class="hintTxt">새 게임을 시작할 때 바뀌어요</span></div>
+              <span class="hintTxt">새 게임을 시작할 때 바뀌어요</span>
+              <span style="margin-left:auto;display:flex;gap:6px;align-items:center"><b style="font-size:15px">🪑 자리</b><button class="btn" id="bShuffle">🔀 자리 섞기</button><button class="btn" id="bByName">🔤 이름순으로 앉기</button></span></div>
             <div class="statRow">
               <div><b id="sJoined">0</b><span>접속</span></div>
               <div><b id="sAliveN">0</b><span id="sAliveL">생존</span></div>
@@ -633,7 +636,12 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const hash = s => { let h=0; for (const ch of String(s)) h = (h*31 + ch.charCodeAt(0))|0; return Math.abs(h); };
 const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3);
 const clean = o => JSON.parse(JSON.stringify(o));
-const randomSpawn = () => ({x: rand(240, 1040), y: rand(380, 740)});
+const randomSpawn = () => ({x: rand(560, 720), y: rand(770, 800)});     // 강당 뒷문 근처에서 들어와요
+/* ---------- 자리 (도전! 골든벨처럼 번호 방석에 앉아요) ---------- */
+const SEAT_COLS = 10, SEAT_MATS = 60, SEAT_DX = 64, SEAT_DY = 58, SEAT_Y0 = 352;
+const seatPos = k => ({x: 640 + ((k % SEAT_COLS) - (SEAT_COLS - 1)/2)*SEAT_DX, y: SEAT_Y0 + Math.floor(k / SEAT_COLS)*SEAT_DY + 8});
+const seatOf = id => { const k = S.game?.seats?.[id]; return k == null ? null : k; };
+const seatLabel = id => { const k = seatOf(id); return k == null ? '' : (k + 1) + '. '; };
 const normAns = s => String(s || '').toLowerCase().replace(/[\s.,!?~·'"()\[\]{}<>\-_:;]/g, '');
 const ansList = a => String(a || '').split('/').map(normAns).filter(Boolean);
 const ansShow = a => String(a || '').split('/').map(s => s.trim()).filter(Boolean).join(' / ');
@@ -648,7 +656,7 @@ const S = {
   log:[], myBank:[], usedQ:new Set(), qTab:'text', panelOpen:true, lastSent:{x:-1,y:-1}, emoteCool:0,
   views:new Map(), moveTarget:null,
   boards:new Map(), boardRound:0, cheers:new Map(), myBoard:{t:'', i:''}, myCheer:null,
-  marks:{}, manual:new Set()
+  marks:{}, manual:new Set(), seatMem:{}
 };
 
 /* =========================================================
@@ -741,7 +749,7 @@ function normGame(g){
     allRevive: !!g.allRevive, survivors: g.survivors ?? null,
     winners: g.winners || null, winnerIds: g.winnerIds || {}, rank: g.rank || null,
     autoEndAt: g.autoEndAt || 0, notice: g.notice || null, closed: g.closed || 0,
-    revealAt: g.revealAt || 0, gradedAt: g.gradedAt || 0, reviveT: g.reviveT || 0, bellT: g.bellT || 0
+    seats: g.seats || {}, revealAt: g.revealAt || 0, gradedAt: g.gradedAt || 0, reviveT: g.reviveT || 0, bellT: g.bellT || 0
   };
 }
 S.game = normGame();
@@ -920,12 +928,35 @@ function revive(){
   setGame(ng);
   addLog(`✨ 패자부활 · ${n}명 다시 도전`); toast(`✨ 패자부활! ${n}명이 다시 도전해요`, 'gold'); sfx('bell');
 }
+// 학생마다 자리 번호 정하기 (교사만) — 나갔다 들어와도 그 자리가 비어 있으면 같은 자리
+function seatKey(m){ return Object.keys(m).sort().map(k => k + ':' + m[k]).join(','); }
+function assignSeats(){
+  const g = S.game, ps = [...S.players.values()].filter(p => p.n);
+  const seats = {}, used = new Set();
+  for (const p of ps){ const k = g.seats[p.id] ?? S.seatMem[p.id]; if (k != null && !used.has(k)){ seats[p.id] = k; used.add(k); } }
+  let free = 0;
+  for (const p of ps) if (!(p.id in seats)){ while (used.has(free)) free++; seats[p.id] = free; used.add(free); }
+  Object.assign(S.seatMem, seats);
+  if (seatKey(seats) !== seatKey(g.seats)) setGame({...g, seats});
+}
+function reseat(kind){
+  const g = S.game;
+  if (['judging','locked','reveal'].includes(g.phase)) return toast('공개·채점이 끝난 뒤에 자리를 바꿀 수 있어요');
+  let ps = [...S.players.values()].filter(p => p.n);
+  if (kind === 'name') ps.sort((a, b) => a.n.localeCompare(b.n, 'ko'));
+  else for (let i = ps.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
+  const seats = Object.fromEntries(ps.map((p, i) => [p.id, i]));
+  S.seatMem = {...seats};
+  setGame({...g, seats});
+  toast(kind === 'name' ? '🔤 이름 순서대로 앉았어요' : '🔀 자리를 섞었어요'); addLog(kind === 'name' ? '🔤 이름순으로 자리 배치' : '🔀 자리 섞기');
+}
 function sendNotice(text){
   text = (text||'').trim(); if (!text) return toast('공지 내용을 입력하세요');
   setGame({...S.game, notice:{text, t:S.net.now()}});
   addLog('📢 ' + esc(text));
 }
 function teacherTick(){
+  if (performance.now() > S.readyAt) assignSeats();
   const g = S.game, now = S.net.now();
   if (g.phase === 'question' && now >= g.endAt){ setGame({...g, phase:'judging'}); sfx('lock'); setTimeout(() => { if (S.game.phase === 'judging') setGame({...S.game, phase:'locked'}); }, 1600); }
   else if (g.phase === 'graded' && g.autoEndAt && now >= g.autoEndAt) endGame();
@@ -976,26 +1007,19 @@ function botTick(dt){
     if (!on && !S.cheers.has(b.id) && Math.random() < .01){
       S.net.putCheer(b.id, {t:CHEER_DEF[Math.floor(Math.random()*CHEER_DEF.length)], i:'', bg:CHEER_BG[Math.floor(Math.random()*CHEER_BG.length)]});
     }
-    const free = !on || ['lobby','graded','end'].includes(g.phase);
     if (now > b.nextWander){
       b.nextWander = now + rand(3000, 7000);
-      if (free && Math.random() < .5){ const p = randomSpawn(); b.tx = clamp(b.x + rand(-140, 140), 60, 1220); b.ty = clamp(b.y + rand(-100, 100), 320, 790); }
       if (!on && Math.random() < .5) botEmote(b, ['cheer','clap','jump','heart'][Math.floor(Math.random()*4)]);
       else if (g.phase === 'graded' && g.marks[b.id] && Math.random() < .5) botEmote(b, ['dance','jump','cheer'][Math.floor(Math.random()*3)]);
       else if (g.phase === 'lobby' && Math.random() < .25) botEmote(b, EMOTES[Math.floor(Math.random()*EMOTES.length)].k);
     }
-    if (!free){ b.walking = false; b.tx = b.x; b.ty = b.y; b.ang = Math.PI; b.rx = b.x; b.ry = b.y; continue; }
-    const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
-    if (d > 3){ const s = Math.min(d, SPEED*0.7*dt); b.x += dx/d*s; b.y += dy/d*s; b.walking = true; b.walkT += dt; b.ang = Math.atan2(dx, dy); }
-    else { b.walking = false; b.ang = Math.PI; }
-    b.rx = b.x; b.ry = b.y;
   }
 }
 function botEmote(b, k){ b.e = k; b.et = S.net.now(); S.net.patch(b.id, {e:k, et:b.et}); }
 setInterval(() => {
   if (S.role !== 'teacher') return;
   for (const b of S.bots){
-    const x = Math.round(b.x), y = Math.round(b.y);
+    const x = Math.round(b.rx), y = Math.round(b.ry);
     if (x !== b.sx || y !== b.sy){ b.sx = x; b.sy = y; S.net.patch(b.id, {x, y}); }
   }
 }, 300);
@@ -1482,6 +1506,26 @@ function ringBell(){ bellSwing.t0 = performance.now(); sfx('bell'); }
   sideBanner('끝까지 도전! 골든벨을 울려라 🔔', '#047857', x1 - .05, -Math.PI/2);
 })();
 
+/* 번호 방석 (자리) */
+(function buildSeats(){
+  const pad = 40, minX = seatPos(0).x - SEAT_DX/2 - pad, maxX = seatPos(SEAT_COLS - 1).x + SEAT_DX/2 + pad;
+  const minY = SEAT_Y0 - SEAT_DY/2 - pad, maxY = SEAT_Y0 + (Math.ceil(SEAT_MATS/SEAT_COLS) - .5)*SEAT_DY + pad;
+  const sc = 3, w = (maxX - minX)*sc, h = (maxY - minY)*sc;
+  const tex = canvasTex(w, h, c => {
+    c.scale(sc, sc); c.translate(-minX, -minY);
+    for (let k = 0; k < SEAT_MATS; k++){
+      const cx = 640 + ((k % SEAT_COLS) - (SEAT_COLS - 1)/2)*SEAT_DX, cy = SEAT_Y0 + Math.floor(k / SEAT_COLS)*SEAT_DY, mw = 50, mh = 46;
+      const row = Math.floor(k / SEAT_COLS);
+      c.fillStyle = 'rgba(0,0,0,.18)'; rr(c, cx - mw/2 + 1.5, cy - mh/2 + 2, mw, mh, 7); c.fill();
+      c.fillStyle = row % 2 ? '#1d4ed8' : '#2563eb'; rr(c, cx - mw/2, cy - mh/2, mw, mh, 7); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1.6; rr(c, cx - mw/2 + 3, cy - mh/2 + 3, mw - 6, mh - 6, 5); c.stroke();
+      c.fillStyle = '#fff'; c.font = `900 13px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(String(k + 1), cx, cy + mh/2 - 9);
+    }
+  });
+  const m = mesh(new THREE.PlaneGeometry((maxX - minX)*K, (maxY - minY)*K), new THREE.MeshLambertMaterial({map:tex, transparent:true, depthWrite:false}), X3((minX + maxX)/2), .025, Z3((minY + maxY)/2));
+  m.rotation.x = -Math.PI/2; m.renderOrder = 1; scene.add(m);
+})();
 /* 이동 목표 표시 */
 const marker = mesh(new THREE.RingGeometry(.45, .7, 28), new THREE.MeshBasicMaterial({color:'#facc15', transparent:true, depthWrite:false}), 0, .06, 0);
 marker.rotation.x = -Math.PI/2; marker.visible = false; scene.add(marker);
@@ -1723,6 +1767,7 @@ function animChar(p, v, dt, t, isTeacher){
   const cheering = !isTeacher && out && !bmode && ph !== 'end' && g.round > 0;
 
   let jy = 0, spin = 0, aL = 0, aR = 0, fL = 0, fR = 0, leg = 0, bow = 0, armS = 1;
+  const seated = !isTeacher && p.seated && !p.walking, sy = seated ? -.5 : 0;
   if (p.walking){ const w = Math.sin((p.walkT || 0)*12); leg = w*.7; fL = w*.6; fR = -w*.6; jy = Math.abs(w)*.08; }
   if (bmode === 'write' && !p.walking){ aL = aR = .15; fL = -1.05; fR = -1.05 + Math.sin(t/90 + hh)*.12; }
   if (bmode === 'up' || bmode === 'show'){ aL = aR = 2.6; fL = fR = .55; armS = 1.45; }
@@ -1746,17 +1791,18 @@ function animChar(p, v, dt, t, isTeacher){
   }
   if (ph === 'graded' && bmode === 'show' && g.marks[p.id]) jy += Math.abs(Math.sin(t/180 + hh))*.25;
   v.root.position.set(X3(p.rx), groundH(p.ry), Z3(p.ry));
-  v.body.position.y = jy;
+  v.body.position.y = jy + sy;
   let diff = (p.ang ?? v.ang) - v.ang; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
   v.ang += diff * Math.min(1, dt*10);
   v.body.rotation.y = v.ang + spin;
   v.upper.rotation.x = bow;
-  v.legL.rotation.x = leg; v.legR.rotation.x = -leg;
+  if (seated){ v.legL.rotation.set(-1.45, 0, -.12); v.legR.rotation.set(-1.45, 0, .12); }
+  else { v.legL.rotation.set(leg, 0, 0); v.legR.rotation.set(-leg, 0, 0); }
   v.armL.rotation.set(fL, 0, -aL); v.armR.rotation.set(fR, 0, aR);
   const as = v.armL.scale.y + (armS - v.armL.scale.y)*Math.min(1, dt*8); v.armL.scale.y = v.armR.scale.y = as;
   v.band.visible = out;
   v.crown.visible = !isTeacher && !!g.winnerIds[p.id] && (ph === 'end' || ph === 'graded');
-  let tagY = 3.35;
+  let tagY = 3.35 + sy;
   if (!isTeacher){
     // 보드
     v.board.visible = !!bmode;
@@ -1767,7 +1813,7 @@ function animChar(p, v, dt, t, isTeacher){
       bp.y += (tg.y - bp.y)*k; bp.z += (tg.z - bp.z)*k; bp.rx += (tg.rx - bp.rx)*k;
       bp.ry = bmode === 'show' ? tg.ry : bp.ry + (tg.ry - bp.ry)*k;
       v.board.position.set(0, bp.y, bp.z); v.board.rotation.set(bp.rx, bp.ry, 0, 'YXZ');
-      if (holding) tagY = 4.45;
+      if (holding) tagY = 4.45 + sy;
     } else { v.bp.y = 1.55; v.bp.z = .78; v.bp.rx = -2.2; v.bp.ry = 0; }
     // 채점 표시
     const mk = ph === 'graded' && bmode === 'show' && !g.allRevive ? (g.marks[p.id] ? 'ok' : 'no') : null;
@@ -1780,10 +1826,10 @@ function animChar(p, v, dt, t, isTeacher){
     }
     // 응원 팻말
     v.cheer.visible = cheering;
-    if (cheering){ refreshCheer(p, v); v.cheer.rotation.z = Math.sin(t/240 + hh)*.28; v.cheer.rotation.y = -.25; tagY = 3.35; }
+    if (cheering){ refreshCheer(p, v); v.cheer.rotation.z = Math.sin(t/240 + hh)*.28; v.cheer.rotation.y = -.25; tagY = 3.35 + sy; }
   }
   const scoreTxt = !isTeacher && g.mode === 'score' && g.round > 0 ? ` ${g.scores[p.id] || 0}점` : '';
-  setTag(v, isTeacher ? '선생님' : p.n + scoreTxt, isTeacher ? 'teacher' : p.id === S.id ? 'me' : out ? 'out' : 'n');
+  setTag(v, isTeacher ? '선생님' : seatLabel(p.id) + p.n + scoreTxt, isTeacher ? 'teacher' : p.id === S.id ? 'me' : out ? 'out' : 'n');
   v.tag.position.y = tagY + jy;
   if (anim){
     if (v.bubbleK !== anim){ v.bubble.material.map = getBubble(anim); v.bubble.material.needsUpdate = true; v.bubbleK = anim; }
@@ -1833,7 +1879,7 @@ const angLerp = (a, b, k) => { let d = b - a; d = Math.atan2(Math.sin(d), Math.c
 function updateCam(dt){
   const k = Math.min(1, dt*5);
   if (camFollows()){
-    const ty = groundH(S.me.y) + (S.camMode === 'front' ? 2.55 : 1.6);
+    const ty = groundH(S.me.y) + (S.camMode === 'front' ? 2.55 : 1.6) - (S.me.seated ? .45 : 0);
     camS.tx += (X3(S.me.x) - camS.tx)*k; camS.ty += (ty - camS.ty)*k; camS.tz += (Z3(S.me.y) - camS.tz)*k;
   } else if (S.camMode === 'overview'){
     const aud = Math.abs(Math.atan2(Math.sin(camS.yaw), Math.cos(camS.yaw))) > 1.6;
@@ -1909,8 +1955,7 @@ function tapAt(cx, cy){
 // 학생은 답을 쓰고 공개하는 동안 제자리에 있어요
 function canMove(){
   if (S.role === 'teacher') return true;
-  const g = S.game;
-  return !(isOn(g, S.id) && ['question','judging','locked','reveal'].includes(g.phase));
+  return seatOf(S.id) == null;            // 자리를 받은 학생은 자리에 앉아 있어요
 }
 
 /* ---------- 효과 ---------- */
@@ -2005,9 +2050,8 @@ function update(dt, t){
     const l = Math.hypot(mx, my); if (l > 1){ mx /= l; my /= l; }
     me.walking = l > .05;
     if (me.walking){ me.x += mx*SPEED*dt; me.y += my*SPEED*dt; me.walkT = (me.walkT || 0) + dt; me.ang = Math.atan2(mx, my); }
-    else if (!isT && !canMove()) me.ang = Math.PI;                 // 답 쓰는 동안은 무대를 봐요
-    clampPos(me, isT);
-    me.rx = me.x; me.ry = me.y;
+    if (!isT && seatOf(S.id) != null) walkToSeat(me, dt);           // 내 자리로 걸어가서 앉기
+    else { clampPos(me, isT); me.rx = me.x; me.ry = me.y; me.seated = false; }
     if (g.phase === 'question' && !isT){
       const sec = Math.ceil((g.endAt - now)/1000);
       if (sec !== S.lastTick && sec <= 5 && sec > 0) sfx('tick');
@@ -2024,7 +2068,10 @@ function update(dt, t){
     if (p.walking){ p.walkT = (p.walkT || 0) + dt; p.ang = Math.atan2(dx, dy); }
   }
   for (const p of S.players.values()){
-    if (p.id === S.id || S.owned.has(p.id)) continue;
+    if (p.id === S.id) continue;
+    if (seatOf(p.id) != null){ walkToSeat(p, dt); continue; }
+    p.seated = false;
+    if (S.owned.has(p.id)) continue;
     const dx = p.x - p.rx, dy = p.y - p.ry, d = Math.hypot(dx, dy);
     if (d > 260){ p.rx = p.x; p.ry = p.y; p.walking = false; continue; }
     const k = Math.min(1, dt*9);
@@ -2035,6 +2082,16 @@ function update(dt, t){
   }
 }
 
+function walkToSeat(p, dt){
+  const sp = seatPos(seatOf(p.id));
+  let dx = sp.x - p.rx, dy = sp.y - p.ry, d = Math.hypot(dx, dy);
+  if (d > 900){ p.rx = sp.x; p.ry = sp.y; d = 0; }
+  if (d > 2){
+    const s = Math.min(d, SPEED*.9*dt); p.rx += dx/d*s; p.ry += dy/d*s;
+    p.walking = true; p.seated = false; p.walkT = (p.walkT || 0) + dt; p.ang = Math.atan2(dx, dy);
+  } else { p.rx = sp.x; p.ry = sp.y; p.walking = false; p.seated = true; p.ang = Math.PI; }
+  if (p === S.me){ p.x = p.rx; p.y = p.ry; }
+}
 function resize(){
   const w = innerWidth, h = innerHeight;
   cv.style.width = w + 'px'; cv.style.height = h + 'px';
@@ -2379,12 +2436,12 @@ function galCounts(){
   $('galCount').textContent = `⭕ ${ok} · ❌ ${ps.length - ok}`;
 }
 function renderGallery(){
-  const g = S.game, ps = participants(g).sort((a, b) => a.n.localeCompare(b.n, 'ko'));
+  const g = S.game, ps = participants(g).sort((a, b) => (seatOf(a.id) ?? 999) - (seatOf(b.id) ?? 999));
   $('galTtl').innerHTML = `Q${g.round}. ${esc(g.q)}<small>${g.qt === 'draw' ? '🎨 예시 답' : '⭕ 정답'}: ${esc(ansShow(S.pending?.a) || '-')}${g.qt === 'draw' ? ' · 보드를 눌러 ⭕/❌를 바꿔요' : ' · 자동 채점 결과를 확인하고 고칠 수 있어요'}</small>`;
   $('galGrid').innerHTML = ps.length ? ps.map(p => {
     const m = S.marks[p.id], b = S.boards.get(p.id);
     return `<div class="gc ${m ? 'ok' : 'no'}" data-id="${p.id}">
-      <div class="nm"><i style="background:${COLORS[(p.c || 0) % COLORS.length]}"></i>${esc(p.n)}${S.manual.has(p.id) ? '<em>직접</em>' : g.qt === 'text' ? '<em>자동</em>' : ''}${!b ? '<em>빈 보드</em>' : ''}</div>
+      <div class="nm"><i style="background:${COLORS[(p.c || 0) % COLORS.length]}"></i>${esc(seatLabel(p.id) + p.n)}${S.manual.has(p.id) ? '<em>직접</em>' : g.qt === 'text' ? '<em>자동</em>' : ''}${!b ? '<em>빈 보드</em>' : ''}</div>
       <canvas width="320" height="200"></canvas>
       <div class="mk"><button class="bo" data-m="1">⭕</button><button class="bx" data-m="0">❌</button></div></div>`;
   }).join('') : '<div class="gal-empty">참여한 학생이 없어요</div>';
@@ -2509,6 +2566,8 @@ $('cN').onclick = () => { sendNotice($('nText').value); $('nText').value = ''; }
 $('nText').addEventListener('keydown', e => { if (e.key === 'Enter') $('cN').click(); });
 $('bNew').onclick = () => { if (S.game.round === 0 || confirmBox('모두 부활하고 점수를 0점으로 바꿔 새 게임을 시작할까요?')) newGame(); };
 $('bRevive').onclick = revive;
+$('bShuffle').onclick = () => reseat('shuffle');
+$('bByName').onclick = () => reseat('name');
 $('bEnd').onclick = () => { if (['question','judging','locked','reveal'].includes(S.game.phase)) return toast('채점을 마친 뒤에 종료할 수 있어요'); endGame(); };
 $('gmSeg').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -2585,7 +2644,7 @@ $('goS').onclick = async () => {
   $('goS').disabled = true; $('goS').textContent = '연결 중…';
   try {
     localStorage.setItem('oxplaza_name', name);
-    S.role = 'student';
+    S.role = 'student'; document.body.classList.add('student');
     S.id = sessionStorage.getItem('goldenbell_id') || uid(); sessionStorage.setItem('goldenbell_id', S.id);
     const sp = randomSpawn();
     S.me = {id:S.id, n:name, c:pickedColor, x:sp.x, y:sp.y, rx:sp.x, ry:sp.y, e:'', et:0, ang:Math.PI, walkT:0};
@@ -2647,8 +2706,8 @@ function applyUiMode(){
   document.body.classList.toggle('phone', ph);
   if (!ph){ document.body.classList.remove('menuOpen', 'emoOpen'); S.joyVec = null; }
   if (S.role === 'student') $('hint').textContent = ph
-    ? '👆 바닥을 톡: 이동 · 🕹 조이스틱 · ✌️ 두 손가락: 시점 · 😊 동작'
-    : '방향키·바닥 클릭으로 이동 · 드래그: 회전 · 우클릭 드래그/두 손가락: 시점 이동 · 휠: 확대 · 1~8 동작';
+    ? '🪑 번호 방석이 내 자리예요 · 👆 드래그: 시점 · ✌️ 두 손가락: 확대 · 😊 동작'
+    : '🪑 번호 방석이 내 자리예요 · 드래그: 시점 회전 · 휠: 확대 · 1~8 동작';
   if (S.net) setTimeout(resize, 0);
 }
 $('uiModeBtn').onclick = () => {
@@ -2686,7 +2745,8 @@ function renderRoster(){
   const g = S.game, sc = g.mode === 'score', showMark = g.phase === 'graded';
   const showSub = S.role === 'teacher' && g.phase === 'question';
   let all = [...S.players.values()].filter(p => p.n);
-  all = sc ? all.sort((a, b) => (g.scores[b.id] || 0) - (g.scores[a.id] || 0) || a.n.localeCompare(b.n, 'ko')) : all.sort((a, b) => a.n.localeCompare(b.n, 'ko'));
+  const sk = p => seatOf(p.id) ?? 999;
+  all = sc ? all.sort((a, b) => (g.scores[b.id] || 0) - (g.scores[a.id] || 0) || sk(a) - sk(b)) : all.sort((a, b) => sk(a) - sk(b));
   const alive = sc ? all : all.filter(p => !g.out[p.id]), out = sc ? [] : all.filter(p => g.out[p.id]);
   const badge = p => {
     if (showMark && p.id in g.marks) return g.marks[p.id] ? '<small class="ok">정답</small>' : '<small class="no">오답</small>';
@@ -2694,9 +2754,9 @@ function renderRoster(){
     if (sc) return `<small class="sc">${g.scores[p.id] || 0}점</small>`;
     return '';
   };
-  const key = [sc, showMark, showSub, ...all.map(p => p.id + (g.out[p.id] ? 'x' : 'o') + p.n + (g.scores[p.id] || 0) + (showMark ? g.marks[p.id] : '') + (showSub ? S.boards.has(p.id) : ''))].join('|');
+  const key = [sc, showMark, showSub, ...all.map(p => p.id + (g.out[p.id] ? 'x' : 'o') + p.n + (g.scores[p.id] || 0) + (showMark ? g.marks[p.id] : '') + (showSub ? S.boards.has(p.id) : '') + sk(p))].join('|');
   if (key === rosterKey) return; rosterKey = key;
-  const row = p => `<div class="${p.id === S.id ? 'me' : ''}"><i style="background:${COLORS[(p.c || 0) % COLORS.length]}"></i>${esc(p.n)}${badge(p)}</div>`;
+  const row = p => `<div class="${p.id === S.id ? 'me' : ''}"><i style="background:${COLORS[(p.c || 0) % COLORS.length]}"></i><b class="sn">${seatOf(p.id) == null ? '' : seatOf(p.id) + 1}</b>${esc(p.n)}${badge(p)}</div>`;
   document.querySelector('#roster .rbox.alive').classList.toggle('score', sc);
   $('rAliveH').innerHTML = sc ? `🏅 점수 순위 <b id="rAliveN">${alive.length}</b>` : `🙋 생존 <b id="rAliveN">${alive.length}</b>`;
   document.querySelector('#roster .rbox.out').hidden = sc;
