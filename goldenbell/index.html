@@ -2697,7 +2697,13 @@ function drawPreview(){
   c.beginPath(); c.arc(cx - 30, hy + 4, 5, 0, 7); c.arc(cx + 30, hy + 4, 5, 0, 7); c.fill();
   // 뾰족 머리 : 머리카락과 붙어 있게 먼저 그리고 그 위를 덮어요
   c.fillStyle = hc;
-  if (look.hs === 3){ c.beginPath(); [[-26, -36, -16], [-14, -48, -4], [0, -52, 10], [14, -48, 22], [26, -36, 30]].forEach(([a, tip, b]) => { c.moveTo(cx + a - 8, hy - 18); c.lineTo(cx + (a + b)/2 - 6, hy + tip + 6); c.lineTo(cx + b - 4, hy - 20); }); c.fill(); }
+  if (look.hs === 3){            // 머리 둘레를 따라 같은 간격 · 좌우 대칭으로 뻗은 가시
+    c.beginPath();
+    for (let i = 0; i < 7; i++){
+      const a = Math.PI*(1.12 + i*.127), w = .2, r0 = 28, r1 = i === 0 || i === 6 ? 41 : 47, oy = hy - 1;
+      c.moveTo(cx + Math.cos(a - w)*r0, oy + Math.sin(a - w)*r0); c.lineTo(cx + Math.cos(a)*r1, oy + Math.sin(a)*r1); c.lineTo(cx + Math.cos(a + w)*r0, oy + Math.sin(a + w)*r0);
+    }
+    c.fill(); }
   // 윗머리 + 물결 앞머리 (눈썹 위에서 끝나요)
   c.beginPath(); c.arc(cx, hy - 1, 32, Math.PI*.96, Math.PI*2.04);
   [[30, -6], [18, -13], [7, -10], [-5, -15], [-17, -11], [-30, -6]].forEach(([x, y]) => c.lineTo(cx + x, hy + y));
