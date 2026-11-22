@@ -753,6 +753,7 @@ function normGame(g){
   };
 }
 S.game = normGame();
+if (DEMO) window.__S = S;           // 데모 모드 점검용
 
 function setGame(g){              // 교사만 호출
   g = normGame(g);
