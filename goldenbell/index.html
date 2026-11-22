@@ -1551,18 +1551,24 @@ function ringBell(){ bellSwing.t0 = performance.now(); sfx('bell'); }
     c.fillText('상상하고 · 설계하고 · 만들고 · 나누는 우리', w/2, hh/2 + 4);
   })}), 0, 10.6, z1 - .05, Math.PI);
   wallPlane(2.4, 2.4, new THREE.MeshBasicMaterial({map:clockTex, transparent:true}), 18, 10.6, z1 - .06, Math.PI);
-  scene.add(mesh(new THREE.BoxGeometry(.2, .2, 1.2), lam('#94a3b8'), 0, 3.95, z1 - .6));
-  wallPlane(3.6, 2.1, new THREE.MeshLambertMaterial({map:canvasTex(256, 150, (c, w, hh) => {
+  // 농구 골대 : 양쪽 옆벽에 (뒤에서 볼 때 시야를 가리지 않게)
+  const hoopTex = canvasTex(256, 150, (c, w, hh) => {
     c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, hh); c.strokeStyle = '#ef4444'; c.lineWidth = 8; c.strokeRect(4, 4, w - 8, hh - 8);
     c.strokeRect(w/2 - 36, hh - 70, 72, 52);
-  })}), 0, 4, z1 - 1.2, Math.PI);
-  const rim = mesh(new THREE.TorusGeometry(.45, .04, 6, 20), lam('#f97316'), 0, 3.05, z1 - 1.75); rim.rotation.x = Math.PI/2; scene.add(rim);
+  });
+  const hz = (-13.25 + z1)/2 + .6;
+  for (const s of [-1, 1]){
+    const wx = s < 0 ? x0 : x1;
+    scene.add(mesh(new THREE.BoxGeometry(1.2, .2, .2), lam('#94a3b8'), wx - s*.6, 3.95, hz));
+    wallPlane(3.6, 2.1, new THREE.MeshLambertMaterial({map:hoopTex}), wx - s*1.2, 4, hz, s < 0 ? Math.PI/2 : -Math.PI/2);
+    const rim = mesh(new THREE.TorusGeometry(.45, .04, 6, 20), lam('#f97316'), wx - s*1.75, 3.05, hz); rim.rotation.x = Math.PI/2; scene.add(rim);
+  }
 
   // ---------- 양쪽 벽 현수막 ----------
   const sideBanner = (text, col, x, ry) => wallPlane(14, 1.5, new THREE.MeshLambertMaterial({map:canvasTex(1120, 120, (c, w, hh) => {
     c.fillStyle = col; rr(c, 0, 0, w, hh, 14); c.fill(); c.fillStyle = 'rgba(255,255,255,.3)'; c.fillRect(0, 8, w, 4); c.fillRect(0, hh - 12, w, 4);
     c.font = `900 62px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff'; c.fillText(text, w/2, hh/2 + 3);
-  })}), x, 3.6, 2, ry);
+  })}), x, 3.6, -7, ry);
   sideBanner('기술로 문제를 해결해요 🔧', '#2563eb', x0 + .05, Math.PI/2);
   sideBanner('끝까지 도전! 골든벨을 울려라 🔔', '#16a34a', x1 - .05, -Math.PI/2);
 })();
