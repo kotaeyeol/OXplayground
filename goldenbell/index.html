@@ -620,7 +620,7 @@ const EMOTES = [
 const EMO_ICON = Object.fromEntries(EMOTES.map(e=>[e.k,e.i]));
 const FONT = 'Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif';
 const SPEED = 230;
-const DEMO = !FIREBASE_CONFIG;
+const DEMO = !FIREBASE_CONFIG || new URLSearchParams(location.search).has('demo');   // 주소 뒤에 ?demo 를 붙이면 연습용 데모 모드
 const PENS = ['#0f172a', '#ef4444', '#2563eb', '#16a34a', '#f59e0b'];
 const CHEER_BG = ['#fde68a', '#fbcfe8', '#bfdbfe', '#bbf7d0', '#ddd6fe', '#fed7aa'];
 const CHEER_DEF = ['화이팅!', '할 수 있어!', '힘내!', '골든벨 가자!', '최고야!', '응원해!'];
