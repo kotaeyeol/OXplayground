@@ -1873,7 +1873,7 @@ function resetCam(snap){
     else aimCam(0, .42, 40, snap);
   }
 }
-function camAudience(snap){ if (S.camMode === 'overview') aimCam(Math.PI, .42, 30, snap); }
+function camAudience(snap){ if (S.camMode === 'overview') aimCam(Math.PI, .72, 34, snap); }
 const camLimits = () => [3, 120];
 const angLerp = (a, b, k) => { let d = b - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + d*k; };
 function updateCam(dt){
@@ -1883,7 +1883,7 @@ function updateCam(dt){
     camS.tx += (X3(S.me.x) - camS.tx)*k; camS.ty += (ty - camS.ty)*k; camS.tz += (Z3(S.me.y) - camS.tz)*k;
   } else if (S.camMode === 'overview'){
     const aud = Math.abs(Math.atan2(Math.sin(camS.yaw), Math.cos(camS.yaw))) > 1.6;
-    camS.tx += (0 - camS.tx)*k; camS.ty += ((aud ? 1.2 : 3) - camS.ty)*k; camS.tz += ((aud ? 3 : -2) - camS.tz)*k;
+    camS.tx += (0 - camS.tx)*k; camS.ty += ((aud ? 1.2 : 3) - camS.ty)*k; camS.tz += ((aud ? -.5 : -2) - camS.tz)*k;
   }
   if (camS.goal){
     const gk = Math.min(1, dt*3.2), G = camS.goal;
