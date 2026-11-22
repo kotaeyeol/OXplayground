@@ -1366,6 +1366,8 @@ drawClock(); setInterval(drawClock, 20000);
 /* ---------- 골든벨 (무대 왼쪽 위에 매달린 큰 종) ---------- */
 const bell = new THREE.Group();
 const bellSwing = {t0:-1e9};
+let curtainZ = -14;
+const curtainGroup = new THREE.Group();     // 무대 막·스피커 (카메라가 무대 뒤에 있으면 숨겨요)
 const ceilGroup = new THREE.Group();          // 천장 조명·트러스 (카메라가 천장 위로 가면 숨겨요)
 function ringBell(){ bellSwing.t0 = performance.now(); sfx('bell'); }
 /* ===================== 강당 (밝은 체육관 · 큰 창문 · 무대) ===================== */
@@ -1503,13 +1505,15 @@ function ringBell(){ bellSwing.t0 = performance.now(); sfx('bell'); }
   })}), 0, h - 1.5, pz, 0);
   // 막 : 밝은 빨강, 양옆으로 활짝 걷힌 모양 (가운데를 가리지 않게)
   const fold = new THREE.CylinderGeometry(.32, .32, 10.6, 10, 1, true), redM = new THREE.MeshLambertMaterial({color:'#e8344f', side:THREE.DoubleSide});
-  for (const s of [-1, 1]) for (let i = 0; i < 5; i++) scene.add(mesh(fold, redM, s*(SW/2 - .3 - i*.42), STAGE_H + 5.3, pz - .25 - (i % 2)*.22));
-  for (const s of [-1, 1]) scene.add(mesh(new THREE.TorusGeometry(.5, .07, 6, 16), lam('#facc15'), s*(SW/2 - 1.1), 5.2, pz - .2));
-  scene.add(mesh(new THREE.BoxGeometry(SW, 1.1, .45), redM, 0, 11.45, pz - .3));
-  scene.add(mesh(new THREE.BoxGeometry(SW, .14, .5), lam('#facc15'), 0, 10.9, pz - .3));
+  scene.add(curtainGroup);
+  for (const s of [-1, 1]) for (let i = 0; i < 5; i++) curtainGroup.add(mesh(fold, redM, s*(SW/2 - .3 - i*.42), STAGE_H + 5.3, pz - .25 - (i % 2)*.22));
+  for (const s of [-1, 1]) curtainGroup.add(mesh(new THREE.TorusGeometry(.5, .07, 6, 16), lam('#facc15'), s*(SW/2 - 1.1), 5.2, pz - .2));
+  curtainGroup.add(mesh(new THREE.BoxGeometry(SW, 1.1, .45), redM, 0, 11.45, pz - .3));
+  curtainGroup.add(mesh(new THREE.BoxGeometry(SW, .14, .5), lam('#facc15'), 0, 10.9, pz - .3));
+  curtainZ = pz;
   for (const s of [-1, 1]){
-    scene.add(mesh(new THREE.BoxGeometry(1.4, 2.2, 1), lam('#1f2937'), s*(SW/2 + 1.8), 9.5, pz + .55));
-    for (const yy of [.45, -.4]) scene.add(mesh(new THREE.CircleGeometry(yy > 0 ? .3 : .45, 16), lam('#475569'), s*(SW/2 + 1.8), 9.5 + yy, pz + 1.06));
+    curtainGroup.add(mesh(new THREE.BoxGeometry(1.4, 2.2, 1), lam('#1f2937'), s*(SW/2 + 1.8), 9.5, pz + .55));
+    for (const yy of [.45, -.4]) curtainGroup.add(mesh(new THREE.CircleGeometry(yy > 0 ? .3 : .45, 16), lam('#475569'), s*(SW/2 + 1.8), 9.5 + yy, pz + 1.06));
   }
 
   // ---------- 골든벨 ----------
@@ -2101,6 +2105,7 @@ function frame(t){
   const dt = Math.min(.05, (t - lastT)/1000); lastT = t;
   update(dt, t);
   ceilGroup.visible = camera.position.y < HALL.h - .8;
+  curtainGroup.visible = camera.position.z > curtainZ + .3;
   updateBoard(t); updateBell(t); updateConfetti(dt); syncViews(dt, t); updateCam(dt); updateQBar();
   if (marker.visible){ const k = (performance.now() - marker.t0)/1500; marker.material.opacity = Math.max(0, 1 - k); marker.scale.setScalar(1 + Math.sin(t/120)*.08); if (k >= 1 || !S.moveTarget) marker.visible = false; }
   renderer.render(scene, camera);
@@ -2136,7 +2141,6 @@ function update(dt, t){
       if (now >= g.endAt - 150 && !S.finalSent) finishWriting();
     }
   }
-  if (S.role === 'teacher') botTick(dt);
   if (S.role === 'student'){
     const p = teacherNPC, dx = p.x - p.rx, dy = p.y - p.ry, d = Math.hypot(dx, dy);
     if (d > 260){ p.rx = p.x; p.ry = p.y; }
@@ -2436,7 +2440,7 @@ setInterval(() => {
   $('hudInfo').textContent = ph ? `🏫 ${S.room} · 👥 ${S.players.size}${sc ? '' : ' · 🙋 ' + aliveCount()}` : `🏫 방 ${S.room} · 👥 ${S.players.size}명${sc ? '' : ` · 🙋 생존 ${aliveCount()}명`}`;
   $('gmBadge').textContent = sc ? '💯 점수형' : '🔔 탈락형';
   renderRoster();
-  if (S.role === 'teacher'){ teacherTick(); updatePanel(); }
+  if (S.role === 'teacher'){ teacherTick(); botTick(.25); updatePanel(); }
 }, 250);
 
 const PH_NAME = {lobby:'대기 중', question:'답 쓰는 중', judging:'보드 모으는 중', reveal:'채점 중', graded:'채점 완료', end:'게임 종료'};
