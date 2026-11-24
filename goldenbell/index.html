@@ -141,6 +141,7 @@ body.phone #wm{display:none}
 .rbox.out .rlist div{color:#64748b}
 .rlist .sn{flex:none;min-width:20px;font-size:11px;color:#64748b;font-weight:900}
 body.student #joy{display:none!important}
+body.phone.student.canWalk #joy{display:block!important}
 .rlist i{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px rgba(15,23,42,.25)}
 .rlist div.me{box-shadow:inset 0 0 0 2px #facc15}
 .rlist small{margin-left:auto;font-size:11px;font-weight:900;padding:0 6px;border-radius:6px;color:#fff;line-height:17px;background:#64748b}
@@ -696,6 +697,19 @@ const randomSpawn = () => ({x: rand(560, 720), y: rand(770, 800)});     // 강�
 const SEAT_COLS = 10, SEAT_MATS = 60, SEAT_DX = 64, SEAT_DY = 58, SEAT_Y0 = 400;
 const seatPos = k => ({x: 640 - ((k % SEAT_COLS) - (SEAT_COLS - 1)/2)*SEAT_DX, y: SEAT_Y0 + Math.floor(k / SEAT_COLS)*SEAT_DY + 8});
 const seatOf = id => { const k = S.game?.seats?.[id]; return k == null ? null : k; };
+// 탈락한 학생(응원단)은 강당을 돌아다녀요 — 단, 방석 구역 안으로는 못 들어와요
+const isOutP = id => S.game.mode !== 'score' && !!S.game.out[id];
+const roams = id => isOutP(id) && !(S.game.phase === 'graded' && S.game.lastOut[id]);   // 방금 탈락해서 보드를 든 동안은 자리에
+function matZone(){
+  const ks = Object.values(S.game.seats || {}), rows = ks.length ? Math.floor(Math.max(...ks)/SEAT_COLS) + 1 : 1;
+  return {x0: 640 - SEAT_COLS*SEAT_DX/2 - 10, x1: 640 + SEAT_COLS*SEAT_DX/2 + 10, y0: SEAT_Y0 - SEAT_DY/2 - 6, y1: SEAT_Y0 + (rows - .5)*SEAT_DY + 14};
+}
+const inZone = (x, y, z = matZone()) => x > z.x0 && x < z.x1 && y > z.y0 && y < z.y1;
+function zoneExit(x, y){
+  const z = matZone();
+  const c = [[z.x0 - 28, y], [z.x1 + 28, y], [x, z.y1 + 28], [x, z.y0 - 28]].filter(([, yy]) => yy >= 305 && yy <= H - 32);
+  return c.map(([cx, cy]) => ({x:cx, y:cy, d:Math.hypot(cx - x, cy - y)})).sort((a, b) => a.d - b.d)[0];
+}
 const seatLabel = id => { const k = seatOf(id); return k == null ? '' : (k + 1) + '. '; };
 const normAns = s => String(s || '').toLowerCase().replace(/[\s.,!?~·'"()\[\]{}<>\-_:;]/g, '');
 const ansList = a => String(a || '').split('/').map(normAns).filter(Boolean);
@@ -832,13 +846,13 @@ function applyGame(raw){
     const wasOut = prev.mode !== 'score' && !!prev.out[S.id], isOut = g.mode !== 'score' && !!g.out[S.id];
     if (!wasOut && isOut){
       if (g.late[S.id]) toast('게임이 진행 중이에요. 응원 팻말을 들고 친구들을 응원해요! 📣');
-      else { toast('😵 탈락! 응원 팻말을 그려서 친구들을 응원해요 📣', 'bad'); sfx('out'); }
+      else { toast('😵 탈락! 다음 문제부터 강당을 돌아다니며 응원할 수 있어요 📣', 'bad'); sfx('out'); }
     }
     if (wasOut && !isOut && g.reviveT !== prev.reviveT){ toast('✨ 패자부활! 다시 도전해요 💪', 'gold'); sfx('bell'); }
     else if (wasOut && !isOut){ toast('🔄 새 게임! 다시 도전해요 💪', 'good'); }
     if (newQ){
       sfx('start');
-      if (isOut) toast(`Q${g.round} 출제! 응원 팻말로 친구들을 응원해요 📣`);
+      if (isOut) toast(`Q${g.round} 출제! 강당을 돌아다니며 응원해요 📣 (방석 구역은 못 들어가요)`);
       else { openEditor('board'); toast(`Q${g.round} · 화이트보드에 답을 써요! ✏️`); }
     }
     if (!wasOut && !isOut && g.phase === 'question' && !newQ && prev.phase === 'question'){} // 그대로
@@ -1067,11 +1081,24 @@ function botTick(dt){
     }
   }
 }
+function botRoam(b, dt){
+  if (!roams(b.id)){ b.x = b.rx; b.y = b.ry; b.tx = null; return; }
+  if (b.tx == null || Math.hypot(b.tx - b.x, b.ty - b.y) < 6){
+    if (inZone(b.x, b.y)){ const e = zoneExit(b.x, b.y); b.tx = e.x; b.ty = e.y; }
+    else if (Math.random() < .25){ let t; for (let i = 0; i < 20; i++){ t = {x: rand(70, 1210), y: rand(310, 785)}; if (!inZone(t.x, t.y)) break; } b.tx = t.x; b.ty = t.y; }
+    else return;
+  }
+  const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy), s = Math.min(d, SPEED*.6*dt);
+  const nx = b.x + dx/d*s, ny = b.y + dy/d*s;
+  if (!inZone(b.x, b.y) && inZone(nx, ny)){ b.tx = null; return; }
+  b.x = nx; b.y = ny;
+}
 function botEmote(b, k){ b.e = k; b.et = S.net.now(); S.net.patch(b.id, {e:k, et:b.et}); }
 setInterval(() => {
   if (S.role !== 'teacher') return;
   for (const b of S.bots){
-    const x = Math.round(b.rx), y = Math.round(b.ry);
+    if (roams(b.id)) botRoam(b, .3);
+    const x = Math.round(roams(b.id) ? b.x : b.rx), y = Math.round(roams(b.id) ? b.y : b.ry);
     if (x !== b.sx || y !== b.sy){ b.sx = x; b.sy = y; S.net.patch(b.id, {x, y}); }
   }
 }, 300);
@@ -2068,7 +2095,7 @@ function tapAt(cx, cy){
 // 학생은 답을 쓰고 공개하는 동안 제자리에 있어요
 function canMove(){
   if (S.role === 'teacher') return true;
-  return seatOf(S.id) == null;            // 자리를 받은 학생은 자리에 앉아 있어요
+  return seatOf(S.id) == null || roams(S.id);   // 자리를 받은 학생은 앉아 있고, 탈락한 응원단만 돌아다녀요
 }
 
 /* ---------- 효과 ---------- */
@@ -2161,8 +2188,19 @@ function update(dt, t){
     } else S.moveTarget = null;
     const l = Math.hypot(mx, my); if (l > 1){ mx /= l; my /= l; }
     me.walking = l > .05;
-    if (me.walking){ me.x += mx*SPEED*dt; me.y += my*SPEED*dt; me.walkT = (me.walkT || 0) + dt; me.ang = Math.atan2(mx, my); }
-    if (!isT && seatOf(S.id) != null) walkToSeat(me, dt);           // 내 자리로 걸어가서 앉기
+    if (me.walking){
+      let nx = me.x + mx*SPEED*dt, ny = me.y + my*SPEED*dt;
+      if (!isT && !inZone(me.x, me.y)){                              // 방석 구역 밖에서는 안으로 못 들어가요 (벽처럼 미끄러짐)
+        if (inZone(nx, me.y)) nx = me.x;
+        if (inZone(nx, ny)) ny = me.y;
+      }
+      me.walking = nx !== me.x || ny !== me.y;
+      me.x = nx; me.y = ny; me.walkT = (me.walkT || 0) + dt; me.ang = Math.atan2(mx, my);
+    }
+    if (!isT && roams(S.id)){
+      if (!S.leftSeat){ S.leftSeat = true; me.x = me.rx; me.y = me.ry; if (inZone(me.x, me.y)) S.moveTarget = zoneExit(me.x, me.y); }
+    } else S.leftSeat = false;
+    if (!isT && seatOf(S.id) != null && !roams(S.id)) walkToSeat(me, dt);   // 내 자리로 걸어가서 앉기
     else { clampPos(me, isT); me.rx = me.x; me.ry = me.y; me.seated = false; }
     if (g.phase === 'question' && !isT){
       const sec = Math.ceil((g.endAt - now)/1000);
@@ -2180,9 +2218,8 @@ function update(dt, t){
   }
   for (const p of S.players.values()){
     if (p.id === S.id) continue;
-    if (seatOf(p.id) != null){ walkToSeat(p, dt); continue; }
+    if (seatOf(p.id) != null && !roams(p.id)){ walkToSeat(p, dt); continue; }
     p.seated = false;
-    if (S.owned.has(p.id)) continue;
     const dx = p.x - p.rx, dy = p.y - p.ry, d = Math.hypot(dx, dy);
     if (d > 260){ p.rx = p.x; p.ry = p.y; p.walking = false; continue; }
     const k = Math.min(1, dt*9);
@@ -2446,6 +2483,7 @@ function edTick(){
 }
 setInterval(edTick, 200);
 function updateFloatBtns(){
+  document.body.classList.toggle('canWalk', S.role === 'student' && !!S.me && roams(S.id));
   const g = S.game, st = S.role === 'student' && S.me;
   const out = st && g.mode !== 'score' && !!g.out[S.id];
   $('edReopen').hidden = !(st && $('ed').hidden && isOn(g, S.id) && g.phase === 'question' && NOW() < g.endAt - 300);
