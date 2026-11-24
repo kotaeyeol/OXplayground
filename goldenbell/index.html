@@ -699,7 +699,9 @@ const seatPos = k => ({x: 640 - ((k % SEAT_COLS) - (SEAT_COLS - 1)/2)*SEAT_DX, y
 const seatOf = id => { const k = S.game?.seats?.[id]; return k == null ? null : k; };
 // 탈락한 학생(응원단)은 강당을 돌아다녀요 — 단, 방석 구역 안으로는 못 들어와요
 const isOutP = id => S.game.mode !== 'score' && !!S.game.out[id];
-const roams = id => isOutP(id) && !(S.game.phase === 'graded' && S.game.lastOut[id]);   // 방금 탈락해서 보드를 든 동안은 자리에
+const hasCheer = id => (id === S.id && S.role === 'student') ? !!S.myCheer : S.cheers.has(id);
+const holdsLastBoard = id => S.game.phase === 'graded' && !!S.game.lastOut[id] && !hasCheer(id);   // 방금 탈락해 ❌ 보드를 든 상태
+const roams = id => isOutP(id) && !holdsLastBoard(id);
 function matZone(){
   const ks = Object.values(S.game.seats || {}), rows = ks.length ? Math.floor(Math.max(...ks)/SEAT_COLS) + 1 : 1;
   return {x0: 640 - SEAT_COLS*SEAT_DX/2 - 10, x1: 640 + SEAT_COLS*SEAT_DX/2 + 10, y0: SEAT_Y0 - SEAT_DY/2 - 6, y1: SEAT_Y0 + (rows - .5)*SEAT_DY + 14};
@@ -883,7 +885,7 @@ function applyGame(raw){
 let boardUnsub = null, boardWatchKey = '';
 function resetBoards(r){
   S.boardRound = r; S.boards.clear(); S.marks = {}; S.manual.clear();
-  S.myBoard = {t:'', i:''}; S.mySent = '';
+  S.myBoard = {t:'', i:''}; S.mySent = ''; S.myDone = false;
   if (boardUnsub){ boardUnsub(); boardUnsub = null; } boardWatchKey = '';
   for (const v of S.views.values()) v.faceKey = '';
 }
@@ -1068,7 +1070,7 @@ function botTick(dt){
       b.decAt = 0;
       if (Math.random() < .06) continue;                    // 가끔 빈 보드
       const ok = (S.pending?.a || '').split('/')[0].trim(), word = ok && ok.length < 9 && Math.random() < .6 ? ok : BOT_WRONG[Math.floor(Math.random()*BOT_WRONG.length)];
-      S.net.putBoard(g.round, b.id, {t:'', i: Math.random() < .5 ? botHand(word) : botDoodle()});
+      S.net.putBoard(g.round, b.id, {t:'', i: Math.random() < .5 ? botHand(word) : botDoodle(), f:1});
     }
     if (!on && !S.cheers.has(b.id) && Math.random() < .01){
       S.net.putCheer(b.id, {t:CHEER_DEF[Math.floor(Math.random()*CHEER_DEF.length)], i:'', bg:CHEER_BG[Math.floor(Math.random()*CHEER_BG.length)]});
@@ -1895,7 +1897,7 @@ function animChar(p, v, dt, t, isTeacher){
   // 이 사람의 보드 상태
   let bmode = null;
   if (!isTeacher){
-    const joined = isOn(g, p.id) || (ph === 'graded' && g.lastOut[p.id]);
+    const joined = isOn(g, p.id) || holdsLastBoard(p.id);
     if (joined && g.round > 0){
       if (ph === 'question') bmode = 'write';
       else if (ph === 'judging') bmode = 'write';
@@ -2273,7 +2275,7 @@ function centerLines(c, text, cx, cy, maxW, maxLines, sizes, weight=900, lhK=1.2
   const ft = fitText(c, text, maxW, maxLines, sizes, weight), lh = ft.size*lhK, y0 = cy - (ft.lines.length - 1)*lh/2;
   ft.lines.forEach((l, i) => c.fillText(l, cx, y0 + i*lh));
 }
-function submittedCount(){ let n = 0; for (const p of participants(S.game)) if (S.boards.has(p.id) || (p.id === S.id && S.mySent)) n++; return n; }
+function submittedCount(){ let n = 0; for (const p of participants(S.game)) if (p.id === S.id && S.role === 'student' ? S.myBoard?.f : S.boards.get(p.id)?.f) n++; return n; }
 function drawBoard(c, t){
   const b = {x:300, y:22, w:680, h:172}, g = S.game, now = NOW();
   c.fillStyle = '#1f2937'; rr(c, b.x-14, b.y-12, b.w+28, b.h+24, 12); c.fill();
@@ -2442,11 +2444,13 @@ function openEditor(mode){
   $('ed').hidden = false; document.body.classList.add('edOpen'); updateFloatBtns(); edTick();
 }
 function closeEditor(){ $('ed').hidden = true; document.body.classList.remove('edOpen'); updateFloatBtns(); }
-function submitBoard(){
+function submitBoard(done){
   const g = S.game; if (!S.net || S.role !== 'student' || g.round !== ED.board.round || !isOn(g, S.id)) return;
-  const d = {t:'', i: edHasInk(ED.board) ? (ED.mode === 'board' ? edExport([320, 200]) : S.myBoard.i) : ''};
+  if (done) S.myDone = true;
+  const ink = edHasInk(ED.board);
+  const d = {t:'', i: ink ? (ED.mode === 'board' ? edExport([320, 200]) : S.myBoard.i) : '', f: ink && S.myDone ? 1 : 0};   // f: 제출 완료
   S.myBoard = d;
-  const key = d.t + '|' + d.i.length + d.i.slice(-40);
+  const key = d.f + '|' + d.i.length + d.i.slice(-40);
   if (key === S.mySent) return;
   S.mySent = key; S.net.putBoard(g.round, S.id, d);
   const v = S.views.get(S.id); if (v) v.faceKey = '';
@@ -2454,8 +2458,8 @@ function submitBoard(){
 function finishWriting(){
   if (S.role !== 'student' || S.finalSent) return;
   S.finalSent = true;
-  if (ED.mode === 'board' && !$('ed').hidden){ submitBoard(); closeEditor(); }
-  else submitBoard();
+  if (ED.mode === 'board' && !$('ed').hidden){ submitBoard(true); closeEditor(); }
+  else submitBoard(true);
 }
 function submitCheer(){
   const d = {t:'', i: edExport([200, 200]), bg: ED.cheer.bg};
@@ -2464,7 +2468,8 @@ function submitCheer(){
 }
 $('edDone').onclick = () => {
   if (ED.mode === 'cheer'){ submitCheer(); closeEditor(); toast('📣 응원 팻말을 들었어요!', 'good'); }
-  else { submitBoard(); closeEditor(); toast('✅ 제출했어요! 시간이 끝날 때까지 고칠 수 있어요'); }
+  else if (!edHasInk(ED.board)) toast('보드가 비어 있어요. 답을 쓰고 눌러 주세요 ✏️');
+  else { submitBoard(true); closeEditor(); toast('✅ 제출했어요! 시간이 끝날 때까지 고칠 수 있어요'); }
 };
 $('edReopen').onclick = () => openEditor('board');
 $('cheerBtn').onclick = () => openEditor('cheer');
@@ -2924,11 +2929,11 @@ function renderRoster(){
   const alive = sc ? all : all.filter(p => !g.out[p.id]), out = sc ? [] : all.filter(p => g.out[p.id]);
   const badge = p => {
     if (showMark && p.id in g.marks) return g.marks[p.id] ? '<small class="ok">정답</small>' : '<small class="no">오답</small>';
-    if (showSub && isOn(g, p.id)) return S.boards.has(p.id) ? '<small class="ok">제출</small>' : '<small class="wr">쓰는 중</small>';
+    if (showSub && isOn(g, p.id)) return S.boards.get(p.id)?.f ? '<small class="ok">제출</small>' : '<small class="wr">쓰는 중</small>';
     if (sc) return `<small class="sc">${g.scores[p.id] || 0}점</small>`;
     return '';
   };
-  const key = [sc, showMark, showSub, ...all.map(p => p.id + (g.out[p.id] ? 'x' : 'o') + p.n + (g.scores[p.id] || 0) + (showMark ? g.marks[p.id] : '') + (showSub ? S.boards.has(p.id) : '') + sk(p))].join('|');
+  const key = [sc, showMark, showSub, ...all.map(p => p.id + (g.out[p.id] ? 'x' : 'o') + p.n + (g.scores[p.id] || 0) + (showMark ? g.marks[p.id] : '') + (showSub ? !!S.boards.get(p.id)?.f : '') + sk(p))].join('|');
   if (key === rosterKey) return; rosterKey = key;
   const row = p => `<div class="${p.id === S.id ? 'me' : ''}"><i style="background:${COLORS[(p.c || 0) % COLORS.length]}"></i><b class="sn">${seatOf(p.id) == null ? '' : seatOf(p.id) + 1}</b>${esc(p.n)}${badge(p)}</div>`;
   document.querySelector('#roster .rbox.alive').classList.toggle('score', sc);
